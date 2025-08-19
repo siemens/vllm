@@ -58,6 +58,7 @@ def server(
         "2",
         "--max-num-seqs",
         "128",
+        "--enable-force-include-usage",
     ]
 
     with RemoteOpenAIServer(MODEL_NAME, args) as remote_server:

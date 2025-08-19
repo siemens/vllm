@@ -72,6 +72,7 @@ def default_server_args(zephyr_lora_files, zephyr_lora_added_tokens_files):
         "64",
         "--max-cpu-loras",
         "2",
+        "--enable-force-include-usage",
     ]
 
 
