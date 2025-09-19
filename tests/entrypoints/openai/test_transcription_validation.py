@@ -23,10 +23,7 @@ MISTRAL_FORMAT_ARGS = [
 
 
 @pytest.fixture(scope="module")
-def server(request):
-    if marker := request.node.get_closest_marker("extra_server_args"):
-        SERVER_ARGS.append(marker.args[0])
-
+def server():
     with RemoteOpenAIServer(MODEL_NAME, SERVER_ARGS) as remote_server:
         yield remote_server
 
@@ -197,16 +194,33 @@ async def test_stream_options(winning_call, client):
     assert final and continuous
 
 
+@pytest.fixture(scope="function")
+def server_with_force_include_usage(request, monkeypatch_module):  #noqa: F811
+    args = [
+        # use half precision for speed and memory savings in CI environment
+        "--dtype",
+        "bfloat16",
+        "--max-model-len",
+        "2048",
+        "--enforce-eager",
+        "--enable-force-include-usage",
+    ]
+
+    with RemoteOpenAIServer("TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+                            args) as remote_server:
+        yield remote_server
+
+
 @pytest.mark.asyncio
-@pytest.mark.extra_server_args(['--enable-force-include-usage'])
 async def test_transcription_with_enable_force_include_usage(
-        client, winning_call):
-    res = await client.audio.transcriptions.create(model=MODEL_NAME,
-                                                   file=winning_call,
-                                                   language="en",
-                                                   temperature=0.0,
-                                                   stream=True,
-                                                   timeout=30)
+        client_with_force_include_usage, winning_call):
+    res = await client_with_force_include_usage.audio.transcriptions.create(
+        model=MODEL_NAME,
+        file=winning_call,
+        language="en",
+        temperature=0.0,
+        stream=True,
+        timeout=30)
 
     async for chunk in res:
         if not len(chunk.choices):
